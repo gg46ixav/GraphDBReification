@@ -1,0 +1,29 @@
+version: "3"
+
+services:
+  graphdb:
+    container_name: graphdb-reification
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        version: 10.7.1
+    environment: 
+      GDB_JAVA_OPTS: >-
+        -Xmx6g -Xms6g
+        -Dgraphdb.home=/opt/graphdb/home
+        -Dgraphdb.workbench.importDirectory=/opt/graphdb/home/graphdb-import
+        -Dgraphdb.workbench.cors.enable=true
+    ports: 
+      - 7200:7200
+      - 7300:7300
+    volumes:
+      - ./import:/opt/graphdb/home/graphdb-import
+      - ./graphdb-repo-config.ttl:/opt/graphdb/graphdb-repo-config.ttl
+    entrypoint: >
+      /bin/sh -c '
+      if [ ! -f "/opt/graphdb/home/.data_loaded" ]; then
+        /opt/graphdb/dist/bin/importrdf preload --force --recursive -q /tmp -c /opt/graphdb/graphdb-repo-config.ttl /opt/graphdb/home/graphdb-import &&
+        touch /opt/graphdb/home/.data_loaded;
+      fi;
+      exec /opt/graphdb/dist/bin/graphdb'
